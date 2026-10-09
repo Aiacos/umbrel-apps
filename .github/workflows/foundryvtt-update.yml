@@ -1,0 +1,45 @@
+name: Foundry VTT update
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "felddy/foundryvtt release to package, such as 14.369.0 (empty: latest stable)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Prepare and lint the change without pushing or opening a PR"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foundryvtt-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.repository != 'getumbrel/umbrel-apps'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_PR_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Update Foundry VTT package
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_PR_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: bash .github/scripts/foundryvtt-update.sh
